@@ -8,7 +8,6 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     adminbound4 = os.path.join(Model_Inputs_gdb, 'Adminbndy4')
     adminbound3 = os.path.join(Model_Inputs_gdb, 'Adminbndy3')
 
-
     arcpy.env.workspace = Model_Inputs_gdb
     
     # Simplify AltStreets and Streets Lines
@@ -182,10 +181,6 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
 def convertAltStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     streets_simple = os.path.join(Model_Outputs_gdb, 'Streets_Simple')
     altstreets = os.path.join(Model_Inputs_gdb, 'AltStreets')
-    zlevels = os.path.join(Model_Inputs_gdb, 'Zlevels')
-    adminbound4 = os.path.join(Model_Inputs_gdb, 'Adminbndy4')
-    namedplace = os.path.join(Model_Inputs_gdb, 'NamedPlc')
-    adminbound3 = os.path.join(Model_Inputs_gdb, 'Adminbndy3')
 
     arcpy.env.workspace = Model_Inputs_gdb
     
