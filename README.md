@@ -15,7 +15,7 @@ It is important to note that this model was specifically designed for the Metro 
 In order for this to work there needs to be a `.env` file that contains the variables pertaining to your system:
 - PROJECT_DIR - The directory that you want to store the processed files in
 - HERE_DIR - Where you are storing the HERE files in (Do not alter the file locations or names)
-- US_COUNTIES - The Location on the directory of a shapefile of all of the US Counties download from Tiger (*Could be converted to use Adminbndy3)
+- US_COUNTIES - The Location on the directory of a shapefile of all of the US Counties download from Tiger (*Could be converted to use Adminbndy3 and could remove from `.env` file)
 
 ## Python Environment
 In order for you to run this file you will need to have an ArcGIS Python Environment running to access the ArcPy Modules. Other than that you will need to install [python-dotenv](https://pypi.org/project/python-dotenv/) into the same Python Environment.

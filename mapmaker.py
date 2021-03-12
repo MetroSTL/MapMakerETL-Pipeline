@@ -2,7 +2,10 @@ import arcpy
 from sys import argv
 import os
 
-def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
+def convertStreets(Project_Folder):
+    Model_Inputs_gdb = os.path.join(Project_Folder, 'Model_Inputs.gdb')
+    Model_Outputs_gdb = os.path.join(Project_Folder, 'Model_Outputs.gdb')
+
     streets = os.path.join(Model_Inputs_gdb, 'Streets')
     zlevels = os.path.join(Model_Inputs_gdb, 'Zlevels')
     adminbound4 = os.path.join(Model_Inputs_gdb, 'Adminbndy4')
@@ -174,11 +177,14 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     
     arcpy.CalculateFields_management(in_table=streets_simple, expression_type="PYTHON3", fields=[["M_LINK_ID", "!OBJECTID!"], ["OLD_LINK_ID", "!LINK_ID!"]], code_block="")[0]
 
-    return arcpy.FeatureClassToFeatureClass_conversion(in_features=streets_simple, out_path=Model_Outputs_gdb, out_name="Streets_Final")[0]
+    return arcpy.FeatureClassToFeatureClass_conversion(in_features="Streets_Final", out_path=Model_Outputs_gdb, out_name="Streets_Final")[0]
 
 
 
-def convertAltStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
+def convertAltStreets(Project_Folder):
+    Model_Inputs_gdb = os.path.join(Project_Folder, 'Model_Inputs.gdb')
+    Model_Outputs_gdb = os.path.join(Project_Folder, 'Model_Outputs.gdb')
+
     streets_simple = os.path.join(Model_Outputs_gdb, 'Streets_Simple')
     altstreets = os.path.join(Model_Inputs_gdb, 'AltStreets')
 
@@ -207,10 +213,12 @@ def convertAltStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     arcpy.CalculateField_management(in_table=altstreets_simple, field="Dom", expression="1", expression_type="PYTHON3", code_block="", field_type="TEXT")
     arcpy.CalculateField_management(in_table=altstreets_simple, field="REF_ZLEV", expression="-9", expression_type="PYTHON3", code_block="", field_type="TEXT")
 
-    return arcpy.FeatureClassToFeatureClass_conversion(in_features=altstreets_simple, out_path=Model_Outputs_gdb, out_name="AltStreets_Final")[0]
+    return arcpy.FeatureClassToFeatureClass_conversion(in_features="AltStreets_Final", out_path=Model_Outputs_gdb, out_name="AltStreets_Final")[0]
 
 
-def mergeStreets(Model_Outputs_gdb):
+def mergeStreets(Project_Folder):
+    Model_Outputs_gdb = os.path.join(Project_Folder, "Model_Outputs.gdb")
+
     streets_final= os.path.join(Model_Outputs_gdb, "Streets_Final")
     altstreets_final= os.path.join(Model_Outputs_gdb, "AltStreets_Final")
     

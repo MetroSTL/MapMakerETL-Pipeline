@@ -78,5 +78,5 @@ def extract(Project_Folder, HERE_Data, us_counties):  # 01-Extract and Copy
     Adminbndy3 = fr"{Project_Folder}\Model Inputs.gdb\Adminbndy3"
     arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Adminbndy3.shp'), clip_features=tl_2017_us_county_counties_selected, out_feature_class=Adminbndy3, cluster_tolerance="")
 
-    return os.path.join(Project_Folder, Model_Outputs_gdb)
+    return os.path.join(Project_Folder, Model_Inputs_gdb)
 
