@@ -12,8 +12,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     arcpy.env.workspace = Model_Inputs_gdb
     
     # Simplify AltStreets and Streets Lines
-    # altstreets_simple = arcpy.SimplifyLine_cartography(in_features=altstreets, out_feature_class="AltStreet_simple", algorithm="POINT_REMOVE", tolerance="5 Feet", error_resolving_option="RESOLVE_ERRORS", collapsed_point_option="KEEP_COLLAPSED_POINTS", error_checking_option="CHECK", in_barriers=[])[0]
-    streets_simple = arcpy.SimplifyLine_cartography(in_features=streets, out_feature_class="AltStreet_simple", algorithm="POINT_REMOVE", tolerance="5 Feet", error_resolving_option="RESOLVE_ERRORS", collapsed_point_option="KEEP_COLLAPSED_POINTS", error_checking_option="CHECK", in_barriers=[])[0]
+    streets_simple = arcpy.SimplifyLine_cartography(in_features=streets, out_feature_class=os.path.join(Model_Outputs_gdb, "Streets_Simple"), algorithm="POINT_REMOVE", tolerance="5 Feet", error_resolving_option="RESOLVE_ERRORS", collapsed_point_option="KEEP_COLLAPSED_POINTS", error_checking_option="CHECK", in_barriers=[])[0]
     
     arcpy.AddFields_management(in_table=streets_simple, field_description=[["REF_ZLEV", "LONG", "", "", "", ""], 
                                                                             ["NREF_ZLEV", "LONG", "", "", "", ""], 
@@ -41,7 +40,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     
     # add in zlevel data to streets
     # calculate REF
-    arcpy.management.JoinField(in_data=streets_simple, in_field="REF_IN_ID", join_table=zlevels, join_field="NODE_ID", fields=["Z_LEVEL"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="REF_IN_ID", join_table=zlevels, join_field="NODE_ID", fields=["Z_LEVEL"])
     zlevelCalc ="""zlevCalc(!Z_LEVEL!)", expression_type="PYTHON3", code_block="def zlevCalc(z):
     if(z != 0):
         return z 
@@ -52,7 +51,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     
     
     # calculate NREF
-    arcpy.management.JoinField(in_data=streets_simple, in_field="NREF_IN_ID", join_table=zlevels, join_field="NODE_ID", fields=["Z_LEVEL"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="NREF_IN_ID", join_table=zlevels, join_field="NODE_ID", fields=["Z_LEVEL"])
     zNlevelCalc ="""def zlevCalc(z):
     if(z != 0):
         return z
@@ -66,7 +65,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     # Calculate Cities
    
     # calculate R_AREA Cities
-    arcpy.management.JoinField(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceCodeR", expression="!AREA_ID!", expression_type="PYTHON3")
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceNameR", expression="placeNameCalc(!POLYGON_NM!)", expression_type="PYTHON3", code_block="""def placeNameCalc(name):
     if name == 'ST LOUIS':
@@ -76,7 +75,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
     
     # calculate L_AREA Cities
-    arcpy.management.JoinField(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceCodeL", expression_type="PYTHON3", expression="!AREA_ID!")
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceNameL", expression_type="PYTHON3", expression="placeNameCalc(!POLYGON_NM!)",  code_block="""def placeNameCalc(name):
     if name == 'ST LOUIS':
@@ -89,7 +88,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     # Calculate County
    
     # calculate R_AREA County
-    arcpy.management.JoinField(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="CountyCodeR", expression="!AREA_ID!", expression_type="PYTHON3")
     arcpy.CalculateField_management(in_table=streets_simple, field="CountyNameR", expression="placeNameCalc(!POLYGON_NM!)", expression_type="PYTHON3", code_block="""def placeNameCalc(name):
     if name == 'ST LOUIS (CITY)':
@@ -99,7 +98,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
     
     # calculate L_AREA County
-    arcpy.management.JoinField(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="CountyCodeL", expression_type="PYTHON3", expression="!AREA_ID!")
     arcpy.CalculateField_management(in_table=streets_simple, field="CountyNameL", expression_type="PYTHON3", expression="placeNameCalc(!POLYGON_NM!)", code_block="""def placeNameCalc(name):
     if name == 'ST LOUIS (CITY)':
@@ -112,7 +111,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     # Calculate State
    
     # calculate R_AREA State
-    arcpy.management.JoinField(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeR", expression="!AREA_ID!", expression_type="PYTHON3")
     arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrR", expression="placeAbbrCalc(!AREA_ID!)", expression_type="PYTHON3", code_block="""def placeAbbrCalc(id):
     if id > 21000000:
@@ -122,7 +121,7 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
     
     # calculate L_AREA State
-    arcpy.management.JoinField(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeL", expression_type="PYTHON3", expression="!AREA_ID!")
     arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrL", expression_type="PYTHON3", expression="placeAbbrCalc(!AREA_ID!)", code_block="""def placeAbbrCalc(id):
     if id > 21000000:
@@ -176,10 +175,50 @@ def convertStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
     
     arcpy.CalculateFields_management(in_table=streets_simple, expression_type="PYTHON3", fields=[["M_LINK_ID", "!OBJECTID!"], ["OLD_LINK_ID", "!LINK_ID!"]], code_block="")[0]
 
+    return arcpy.FeatureClassToFeatureClass_conversion(in_features=streets_simple, out_path=Model_Outputs_gdb, out_name="Streets_Final")[0]
+
+
+
 def convertAltStreets(Model_Inputs_gdb, Model_Outputs_gdb, Project_Folder):
-    streets = os.path.join(Model_Inputs_gdb, 'Streets')
+    streets_simple = os.path.join(Model_Outputs_gdb, 'Streets_Simple')
     altstreets = os.path.join(Model_Inputs_gdb, 'AltStreets')
     zlevels = os.path.join(Model_Inputs_gdb, 'Zlevels')
     adminbound4 = os.path.join(Model_Inputs_gdb, 'Adminbndy4')
     namedplace = os.path.join(Model_Inputs_gdb, 'NamedPlc')
     adminbound3 = os.path.join(Model_Inputs_gdb, 'Adminbndy3')
+
+    arcpy.env.workspace = Model_Inputs_gdb
+    
+    # Simplify AltStreets and Streets Lines
+    altstreets_simple = arcpy.SimplifyLine_cartography(in_features=altstreets, out_feature_class=os.path.join(Model_Outputs_gdb, "AltStreet_simple"), algorithm="POINT_REMOVE", tolerance="5 Feet", error_resolving_option="RESOLVE_ERRORS", collapsed_point_option="KEEP_COLLAPSED_POINTS", error_checking_option="CHECK", in_barriers=[])[0]
+    
+    arcpy.AddFields_management(in_table=altstreets_simple, field_description=[["REF_ZLEV", "SHORT", "", "", "", ""], 
+                                                                            ["DOM", "LONG", "", "", "", ""]])
+
+    arcpy.AddIndex_management(altstreets_simple, ["LINK_ID"], "#", "NON_UNIQUE", "ASCENDING")
+
+    arcpy.JoinField_management(in_data=altstreets_simple, in_field="LINK_ID", join_table=streets_simple, join_field="LINK_ID", fields=["NUM_STNMES"])
+
+    # Filter out all of the altstreet rows that do not have multiple names
+    altstreets_filter = arcpy.FeatureClassToFeatureClass_conversion(in_features=altstreets_simple, out_path=Model_Outputs_gdb, out_name="AltStreets_Filter", where_clause="NUM_STNMES > 1")
+
+    # Create Statistics Table from AltStreets_Simple
+    altstreet_stats = os.path.join(Model_Outputs_gdb, "Altstreets_Stats")
+    arcpy.Statistics_analysis(in_table=altstreets_filter, out_table=altstreet_stats, statistics_fields=[["LINK_ID", "FIRST"]], case_field=["LINK_ID", "ST_NAME"])
+
+    # Join AltStreets_Simple with AltStreets_Stats
+    arcpy.JoinField_management(in_data=altstreets_simple, in_field="LINK_ID", join_table=altstreet_stats, join_field="LINK_ID", fields=["NUM_STNMES"])
+
+    arcpy.CalculateField_management(in_table=altstreets_simple, field="Dom", expression="1", expression_type="PYTHON3", code_block="", field_type="TEXT")
+    arcpy.CalculateField_management(in_table=altstreets_simple, field="REF_ZLEV", expression="-9", expression_type="PYTHON3", code_block="", field_type="TEXT")
+
+    return arcpy.FeatureClassToFeatureClass_conversion(in_features=altstreets_simple, out_path=Model_Outputs_gdb, out_name="AltStreets_Final")[0]
+
+
+def mergeStreets(Model_Outputs_gdb):
+    streets_final= os.path.join(Model_Outputs_gdb, "Streets_Final")
+    altstreets_final= os.path.join(Model_Outputs_gdb, "AltStreets_Final")
+    
+    arcpy.env.workspace = Model_Outputs_gdb
+    
+    return arcpy.Merge_management(inputs=[streets_final, altstreets_final], output='AllStreets_Final')[0]
