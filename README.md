@@ -28,6 +28,10 @@ Install `python dotenv`:
 
 `pip install python-dotenv`
 
+You will also need Fiona and GeoPandas for the AVL export
+
+`conda install fiona geopandas`
+
 To Run:
 
  `python run()` 

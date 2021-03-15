@@ -211,6 +211,8 @@ def convertAltStreets(Project_Folder):
     arcpy.JoinField_management(in_data=altstreets_simple, in_field="LINK_ID", join_table=altstreet_stats, join_field="LINK_ID", fields=["NUM_STNMES"])
 
     arcpy.CalculateField_management(in_table=altstreets_simple, field="Dom", expression="1", expression_type="PYTHON3", code_block="", field_type="TEXT")
+
+    # Alias streetname identifier calculation (Alias == -9)
     arcpy.CalculateField_management(in_table=altstreets_simple, field="REF_ZLEV", expression="-9", expression_type="PYTHON3", code_block="", field_type="TEXT")
 
     return arcpy.FeatureClassToFeatureClass_conversion(in_features="AltStreets_Final", out_path=Model_Outputs_gdb, out_name="AltStreets_Final")[0]
