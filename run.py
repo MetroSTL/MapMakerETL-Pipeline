@@ -15,7 +15,7 @@ def run():
 
     # HERE Dir = Where the original HERE files are.
     HERE_Data = os.environ['HERE_DATA']
-    US_COUNTIES = os.environ['US_COUNTIES']
+    US_COUNTIES = os.path.join(os.getcwd(), r'county\cb_2017_us_county_500k.shp')
 
     # where the us couties shapefile lives
     # extract and clip files to STL region

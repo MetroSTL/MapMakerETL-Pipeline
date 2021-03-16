@@ -3,7 +3,8 @@ from sys import argv
 import os
 import geopandas as gpd
 
-
+# takes in the final streets file that is exported and separates it out into 3 diffent files in the AVL.gdb
+# Interstates, Streets, and Major_Roads are the files exported
 def filterAndSeparate(Final_MM_Shapefile, Project_Folder):  # AVL Basemap Export
 
     # To allow overwriting outputs change overwriteOutput option to True.
@@ -27,6 +28,8 @@ def filterAndSeparate(Final_MM_Shapefile, Project_Folder):  # AVL Basemap Export
     _Output_MajorRoads_Layer,  = arcpy.management.SelectLayerByAttribute(in_layer_or_view=_Output_MajorRoads, selection_type="NEW_SELECTION", where_clause="M_SPEED < 25 Or M_SEG_NAME LIKE '%ON-RAMP%' Or M_SEG_NAME LIKE '%OFF-RAMP%' And M_SEG_NAME LIKE 'I-%'", invert_where_clause="")
     arcpy.management.DeleteRows(in_rows=_Output_MajorRoads_Layer)
 
+# uses geopandas to convert the file to a midmif file so 
+# that it can be uploaded to avl software
 def convertToMidMif(Project_Folder):
     avl_gdb = os.path.join(Project_Folder, 'AVL.gdb')
 

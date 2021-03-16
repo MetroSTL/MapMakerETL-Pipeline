@@ -15,7 +15,7 @@ It is important to note that this model was specifically designed for the Metro 
 In order for this to work there needs to be a `.env` file that contains the variables pertaining to your system:
 - PROJECT_DIR - The directory that you want to store the processed files in
 - HERE_DIR - Where you are storing the HERE files in (Do not alter the file locations or names)
-- US_COUNTIES - The Location on the directory of a shapefile of all of the US Counties download from Tiger (*Could be converted to use Adminbndy3 and could remove from `.env` file)
+- PREV_MAP - location of previous map shapefile that contains edits to the map
 
 ## Python Environment
 In order for you to run this file you will need to have an ArcGIS Python Environment running to access the ArcPy Modules. Other than that you will need to install [python-dotenv](https://pypi.org/project/python-dotenv/) into the same Python Environment.
@@ -33,16 +33,6 @@ You will also need Fiona and GeoPandas for the AVL export
 `conda install fiona geopandas`
 
 
-### Alternate install (untested)
-
-It may be possible to install all of the libraries in one command and may be easier to get off the 
-
-create environment
-
-`conda list --export > requirements.txt`
-
-No idea how to install it
-
 To Run:
 
  `python run()` 
@@ -52,12 +42,13 @@ To Run:
 The Extract and Copy script does exactly that. It is pointed at a directory that has all of the files that make up the HERE dataset and pulls the files that it needs clips them to the specified boundary and the deposits them to a GDB (`./%Project_Folder%/Model_Inputs.gdb`). There is also a `Model_Outputs.gdb` that is created in this process that will hold the eventual output of subsiquent Python scripts.
 
 ## MapMaker Conversion
-The MapMaker Converion script is the main piece of Python Script a part of this model. This will be how the Streets and AltStreets (Alias') will be formated, filtered and merged together to form the majority of the file that makes up the shapefile to be uploaded through the MapMaker Tool. 
-
+The MapMaker Converion script is the main piece of Python Script a part of this model. This will be how the Streets and AltStreets (Alias') will be formated, filtered and merged together to form the majority of the file that makes up the shapefile to be uploaded through the MapMaker Tool. You will find this in the `mapmaker.py` file.
 
 
 ## Custom Edits
 While it is important to make sure that all edits are pushed to the [HERE MapCreator Application](https://mapcreator.here.com/) there will inevitably be edits that are not accepted through the application and will need to be put in manually. The Custom Edits Tool is meant to find specific custom edits from the old file, isolate them into a new file and then merge them into the new streets file after the `MapMaker Conversion` process is done running.
+
+In the mapmaker.py the findAndIsolateOldEdits() is what finds and exports the old edits to another feature class in the Model_Output.gdb. This function just finds if the 'M_EDIT' field is greater than 0 and if so it exports it to the GDB. 
 
 ## AVL Basemap
 While the Basemap for Pass and FX is done in MapMaker there is another completely different process that is run to convert the files for the AVL system. This is the basemap that scheduling maintains. These file are MidMif files and have to be converted over via another script. **However, ArcGIS and arcpy do not have the capability to export MidMif files so a 3rd party library or tool has to be used in order to make this happen.** One of the options for this is to use [Qgis](https://qgis.org/en/site/forusers/download.html). While this tool is outside the perview of this script, you can open up a Shapefile in Qgis > Right Click on the layer > Save As > MidMif > Profit!!! 

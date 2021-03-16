@@ -127,19 +127,17 @@ def convertStreets(Project_Folder, us_counties):
     # Calculate State fields
     # StateAbbrL, StateAbbrR, StateCodeL, StateCodeR
     arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeL", expression_type="PYTHON3", expression="!GEOID![0:2]")
-    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrL", expression_type="PYTHON3", expression="stateAbbr(!StateCodeL!)", code_block=""""def stateAbrr(statecode):
+    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrL", expression_type="PYTHON3", expression="stateAbbr(!StateCodeL!)", code_block=""""def stateAbbr(statecode):
     if statecode == 29:
         return 'MO'
     else:
-        retturn 'IL'
-    """)
+        retturn 'IL' """)
     arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeR", expression_type="PYTHON3", expression="!GEOID![0:2]")
-    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrR", expression_type="PYTHON3", expression="stateAbbr(!StateCodeR!)", code_block=""""def stateAbrr(statecode):
+    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrR", expression_type="PYTHON3", expression="stateAbbr(!StateCodeR!)", code_block=""""def stateAbbr(statecode):
     if statecode == 29:
         return 'MO'
     else:
-        retturn 'IL'
-    """)
+        retturn 'IL' """)
 
     arcpy.DeleteField_management(in_table=streets_simple, drop_field=["GEOID", "NAME"])
 
@@ -162,7 +160,7 @@ def convertStreets(Project_Folder, us_counties):
     if(dir == 'T'):
         return toSpeed
     else:
-        return fromSpeed""")
+        return fromSpeed """)
     print('OneWay Calculated')
     
     
@@ -177,7 +175,7 @@ def convertStreets(Project_Folder, us_counties):
         elif(cat == '6'):
             return 25
         elif(cat == '5'):
-            return 35""")
+            return 35 """)
     print('Speed Calculated')
     
     # Calculate Functional Classes
@@ -190,7 +188,7 @@ def convertStreets(Project_Folder, us_counties):
     elif(fClass == 3):
         return 'A30'
     elif(fClass == 4 or fClass == 5):
-        return 'A40'""")
+        return 'A40' """)
     
     arcpy.CalculateFields_management(in_table=streets_simple, expression_type="PYTHON3", fields=[["M_LINK_ID", "!OBJECTID!"], ["OLD_LINK_ID", "!LINK_ID!"]], code_block="")[0]
     print('CFCC Calculated')
@@ -241,6 +239,11 @@ def convertAltStreets(Project_Folder):
 
     return arcpy.FeatureClassToFeatureClass_conversion(in_features="AltStreets_Final", out_path=Model_Outputs_gdb, out_name="AltStreets_Final")[0]
 
+# # function to update to the 'M_' field schema that is documented in the documentation
+# # adds fields then finds all fields that are not in the specified schema and removes them after moving to a new file
+# def updateSchema(allStreets):
+
+
 # file merges the altstreets and streets file that was output from the convertStreets() and convertAltStreets()
 def mergeStreets(Project_Folder):
     Model_Outputs_gdb = os.path.join(Project_Folder, "Model_Outputs.gdb")
@@ -252,3 +255,9 @@ def mergeStreets(Project_Folder):
 
     # returns the file location in the Model_Outputs.gdb
     return arcpy.Merge_management(inputs=[streets_final, altstreets_final], output='AllStreets_Final')[0]
+
+# takes in the old map location as the arguement to find rows that have been indicated under the 'M_EDIT' field as > 1
+# outputs to Model_Outputs GDB as Previous_Edits
+def findAndIsolateOldEdits(Project_Folder, prev_map):
+    Model_Outputs_gdb = os.path.join(Project_Folder, "Model_Outputs.gdb")
+    arcpy.FeatureClassToFeatureClass_conversion(prev_map, out_path=Model_Outputs_gdb, out_name="Previous_Edits", where_clause="M_EDIT > 0")
