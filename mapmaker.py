@@ -9,6 +9,8 @@ import os
 # recalculates cfcc (functional road classes) to mapmaker format
 # makes assumtions on speed of road if there is no data in speed field
 def convertStreets(Project_Folder, us_counties):
+    arcpy.env.overwriteOutput = True
+
     Model_Inputs_gdb = os.path.join(Project_Folder, 'Model_Inputs.gdb')
     Model_Outputs_gdb = os.path.join(Project_Folder, 'Model_Outputs.gdb')
 
@@ -40,6 +42,8 @@ def convertStreets(Project_Folder, us_counties):
                                                                             ["CFCC", "TEXT", "", "255", "", ""], 
                                                                             ["M_LINK_ID", "LONG", "", "", "", ""], 
                                                                             ["OLD_LINK_ID", "LONG", "", "", "", ""]])
+
+
     print('Fields added to Streets')
     
     arcpy.JoinField_management(in_data=streets_simple, in_field="REF_IN_ID", join_table=zlevels, join_field="NODE_ID", fields=["Z_LEVEL"])
@@ -127,17 +131,17 @@ def convertStreets(Project_Folder, us_counties):
     # Calculate State fields
     # StateAbbrL, StateAbbrR, StateCodeL, StateCodeR
     arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeL", expression_type="PYTHON3", expression="!GEOID![0:2]")
-    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrL", expression_type="PYTHON3", expression="stateAbbr(!StateCodeL!)", code_block=""""def stateAbbr(statecode):
+    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrL", expression_type="PYTHON3", expression="stateAbbr(!StateCodeL!)", code_block="""def stateAbbr(statecode):
     if statecode == 29:
         return 'MO'
     else:
-        retturn 'IL' """)
+        return 'IL' """)
     arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeR", expression_type="PYTHON3", expression="!GEOID![0:2]")
-    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrR", expression_type="PYTHON3", expression="stateAbbr(!StateCodeR!)", code_block=""""def stateAbbr(statecode):
+    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrR", expression_type="PYTHON3", expression="stateAbbr(!StateCodeR!)", code_block="""def stateAbbr(statecode):
     if statecode == 29:
         return 'MO'
     else:
-        retturn 'IL' """)
+        return 'IL' """)
 
     arcpy.DeleteField_management(in_table=streets_simple, drop_field=["GEOID", "NAME"])
 
@@ -193,7 +197,10 @@ def convertStreets(Project_Folder, us_counties):
     arcpy.CalculateFields_management(in_table=streets_simple, expression_type="PYTHON3", fields=[["M_LINK_ID", "!OBJECTID!"], ["OLD_LINK_ID", "!LINK_ID!"]], code_block="")[0]
     print('CFCC Calculated')
 
-    return arcpy.FeatureClassToFeatureClass_conversion(in_features="Streets_Final", out_path=Model_Outputs_gdb, out_name="Streets_Final")[0]
+    # updated the schema to match mapmaker schema
+    updateSchema(streets_simple)
+
+    return arcpy.FeatureClassToFeatureClass_conversion(in_features=streets_simple, out_path=Model_Outputs_gdb, out_name="Streets_Final")[0]
 
 
 # This fucntion is the way to change the HERE data spec to the mapmaker spec for the altstreets file (alias' file) for alternate street names
@@ -201,6 +208,8 @@ def convertStreets(Project_Folder, us_counties):
 # this process runs after the extract() and that is where the files are extracted to their gdb's
 # all data from this function is output to the Model_Output.gdb
 def convertAltStreets(Project_Folder):
+    arcpy.env.overwriteOutput = True
+
     Model_Inputs_gdb = os.path.join(Project_Folder, 'Model_Inputs.gdb')
     Model_Outputs_gdb = os.path.join(Project_Folder, 'Model_Outputs.gdb')
 
@@ -214,16 +223,18 @@ def convertAltStreets(Project_Folder):
     altstreets_simple = arcpy.SimplifyLine_cartography(in_features=altstreets, out_feature_class=os.path.join(Model_Outputs_gdb, "AltStreet_simple"), algorithm="POINT_REMOVE", tolerance="5 Feet", error_resolving_option="RESOLVE_ERRORS", collapsed_point_option="KEEP_COLLAPSED_POINTS", error_checking_option="CHECK", in_barriers=[])[0]
     
     # add ref_zlev and dom fields for alias classification and linking to streets file
-    arcpy.AddFields_management(in_table=altstreets_simple, field_description=[["REF_ZLEV", "SHORT", "", "", "", ""], 
-                                                                            ["DOM", "LONG", "", "", "", ""]])
+    arcpy.AddFields_management(in_table=altstreets_simple, field_description=[["REF_ZLEV", "SHORT"], ["DOM", "LONG"]])
+    print('added fields to altstreets')
 
-
-    arcpy.AddIndex_management(altstreets_simple, ["LINK_ID"], "#", "NON_UNIQUE", "ASCENDING")
+    arcpy.AddIndex_management(altstreets_simple, fields=["LINK_ID"], index_name="LINK_ID", unique="NON_UNIQUE", ascending="ASCENDING")
+    print('added altstreet index')
 
     arcpy.JoinField_management(in_data=altstreets_simple, in_field="LINK_ID", join_table=streets_simple, join_field="LINK_ID", fields=["NUM_STNMES"])
+    print('joined altstreets to streets')
 
     # Filter out all of the altstreet rows that do not have multiple names
     altstreets_filter = arcpy.FeatureClassToFeatureClass_conversion(in_features=altstreets_simple, out_path=Model_Outputs_gdb, out_name="AltStreets_Filter", where_clause="NUM_STNMES > 1")
+    print('altstreets filtered if less than 2')
 
     # Create Statistics Table from AltStreets_Simple
     altstreet_stats = os.path.join(Model_Outputs_gdb, "Altstreets_Stats")
@@ -237,11 +248,43 @@ def convertAltStreets(Project_Folder):
     # Alias streetname identifier calculation (Alias == -9)
     arcpy.CalculateField_management(in_table=altstreets_simple, field="REF_ZLEV", expression="-9", expression_type="PYTHON3", code_block="", field_type="TEXT")
 
-    return arcpy.FeatureClassToFeatureClass_conversion(in_features="AltStreets_Final", out_path=Model_Outputs_gdb, out_name="AltStreets_Final")[0]
+    # updated the schema to match mapmaker schema
+    updateSchema(altstreets_simple)
+
+    return arcpy.FeatureClassToFeatureClass_conversion(in_features=altstreets_simple, out_path=Model_Outputs_gdb, out_name="AltStreets_Final")[0]
 
 # # function to update to the 'M_' field schema that is documented in the documentation
 # # adds fields then finds all fields that are not in the specified schema and removes them after moving to a new file
-# def updateSchema(allStreets):
+def updateSchema(streets_file):
+    # list of fields that need to be added by the end
+    add_fields = [{"new":'M_LINK_ID', "old": 'LINK_ID', "type": 'Double'}, 
+    {"new": 'M_ST_PREF', "old": "ST_TYP_BEF", "type": 'Text'}, 
+    {"new": 'M_SEG_NAME', "old": "ST_NM_BASE", "type": 'Text'},
+    {"new":'M_ST_AFT', "old": "ST_TYP_AFT", "type": 'Text'}, 
+    {"new": 'M_ST_NM', "old": 'ST_NAME', "type": 'Text'}, 
+    {"new": 'M_CFCC', "old": "CFCC", "type": 'Text'}, 
+    {"new": 'M_ALIAS', "old": "REF_ZLEV", "type": 'Long'}, 
+    {"new": 'M_STATE', "old": "StateAbbrL", "type": 'Text'}, 
+    {"new":'M_SPEED', "old": "Speed", "type": 'Long'}, 
+    {"new": 'M_LEFT_PL', "old": "PlaceNamL", "type": 'Text'}, 
+    {"new": 'M_RIGHT_PL', "old": "PlaceNamR", "type": 'Text'}, 
+    {"new": 'M_F_ZLEV', "old": "REF_ZLEV", "type": 'Long'}, 
+    {"new": 'M_T_ZLEV', "old": "NREF_ZLEV", "type": 'Long'},  
+    {"new": 'M_ONEWAY', "old": "OneWay", "type": 'Text'},  
+    {"new":'M_OLD_ID', "old": "M_LINK_ID", "type": 'Long'}, 
+    ]
+
+    # # create a list of all of the fields that are in the streets_file
+    streets_file_fields = []
+    for field in arcpy.ListFields(streets_file):
+        streets_file_fields.append(field.name)
+
+    # if the new field is not in the file add it and update the field from the old field name
+    for field in add_fields:
+        if field['new'] not in streets_file_fields and field['old'] in streets_file_fields:
+            arcpy.AddField_management(streets_file, field['new'], field['type'])
+            arcpy.CalculateField_management(streets_file, field['new'], f"!{field['old']}!", expression_type="PYTHON3")
+    print(f'{streets_file} schema updated')
 
 
 # file merges the altstreets and streets file that was output from the convertStreets() and convertAltStreets()

@@ -6,6 +6,7 @@ from mapmaker import convertStreets, convertAltStreets, mergeStreets
 
 
 def run():
+    
     # define custom env variables
     dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
     load_dotenv(dotenv_path)
@@ -30,7 +31,7 @@ def run():
 
     # attempt to convert the 
     # try:
-    #     convertAltStreets(Project_Folder)
+    convertAltStreets(Project_Folder)
     # except:
     #     print('Failed on Converting AltStreets')
     #     return

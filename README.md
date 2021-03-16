@@ -9,6 +9,11 @@ The Tool is broken out into a couple of different toolsets:
 3. Custom Edits
 4. AVL Basemap
 
+
+![MapMaker diagram](MapMaker_Model_Diagram.png)
+
+
+
 It is important to note that this model was specifically designed for the Metro St Louis transit agnecy and makes some assumptions in some of the field calculations surrounding the Place, State, and County calculations. If this model is to be used for another region these calculations should be altered to reflect the region. 
 
 ## .env File

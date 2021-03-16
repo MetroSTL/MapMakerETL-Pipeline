@@ -17,7 +17,6 @@ import os
 # variable's where clause to define the bounds by the county information in the AdminBndry3 file. In this function the names of the three counties are used
 # to isolate the area by using, "POLYGON_NM in ('ST CLAIR', 'ST LOUIS', 'ST LOUIS (CITY)')"
 def extract(Project_Folder, HERE_Data):  # 01-Extract and Copy
-
     # To allow overwriting outputs change overwriteOutput option to True.
     arcpy.env.overwriteOutput = True
     arcpy.env.workspace = HERE_Data
@@ -30,7 +29,9 @@ def extract(Project_Folder, HERE_Data):  # 01-Extract and Copy
     Adminbndy3 = os.path.join(HERE_Data, 'Adminbndy3.shp')
 
     # define the region and export using the AdminBdry3 file and where_clause to reference data in that table
-    region = arcpy.FeatureClassToFeatureClass_conversion(Adminbndy3, Model_Inputs_gdb, "Region", where_clause="POLYGON_NM in ('ST CLAIR', 'ST LOUIS', 'ST LOUIS (CITY)')")[0]
+    # for testing purposes just working with st louis city data
+    region = arcpy.FeatureClassToFeatureClass_conversion(Adminbndy3, Model_Inputs_gdb, "Region", where_clause="POLYGON_NM = 'ST LOUIS (CITY)'")[0]
+    # region = arcpy.FeatureClassToFeatureClass_conversion(Adminbndy3, Model_Inputs_gdb, "Region", where_clause="POLYGON_NM in ('ST CLAIR', 'ST LOUIS', 'ST LOUIS (CITY)')")[0]
 
     # Clip the streets file usin region and export to Model_Inputs.gdb
     Streets = os.path.join(Model_Inputs_gdb, fr"Streets")
