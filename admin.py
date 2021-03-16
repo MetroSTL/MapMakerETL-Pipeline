@@ -69,3 +69,18 @@ def extract(Project_Folder, HERE_Data):  # 01-Extract and Copy
 
     return os.path.join(Project_Folder, Model_Inputs_gdb)
 
+
+
+# file merges the altstreets and streets file that was output from the convertStreets() and convertAltStreets()
+def mergeStreets(Project_Folder):
+    Model_Outputs_gdb = os.path.join(Project_Folder, "Model_Outputs.gdb")
+
+    streets_final= os.path.join(Model_Outputs_gdb, "Streets_Final")
+    altstreets_final= os.path.join(Model_Outputs_gdb, "AltStreets_Final")
+    water_final = os.path.join(Model_Outputs_gdb, "Water_final")
+
+    arcpy.env.workspace = Model_Outputs_gdb
+
+    # returns the file location in the Model_Outputs.gdb
+    allstreets = arcpy.Merge_management(inputs=[streets_final, altstreets_final, water_final], output='MapMakerCenterLine_Final')[0]
+    return arcpy.FeatureClassToFeatureClass_conversion(allstreets, out_path=Model_Outputs_gdb, out_name='MapMakerCenterLine_Final')

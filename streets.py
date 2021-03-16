@@ -287,18 +287,6 @@ def updateSchema(streets_file):
     print(f'{streets_file} schema updated')
 
 
-# file merges the altstreets and streets file that was output from the convertStreets() and convertAltStreets()
-def mergeStreets(Project_Folder):
-    Model_Outputs_gdb = os.path.join(Project_Folder, "Model_Outputs.gdb")
-
-    streets_final= os.path.join(Model_Outputs_gdb, "Streets_Final")
-    altstreets_final= os.path.join(Model_Outputs_gdb, "AltStreets_Final")
-    
-    arcpy.env.workspace = Model_Outputs_gdb
-
-    # returns the file location in the Model_Outputs.gdb
-    return arcpy.Merge_management(inputs=[streets_final, altstreets_final], output='AllStreets_Final')[0]
-
 # takes in the old map location as the arguement to find rows that have been indicated under the 'M_EDIT' field as > 1
 # outputs to Model_Outputs GDB as Previous_Edits
 def findAndIsolateOldEdits(Project_Folder, prev_map):
