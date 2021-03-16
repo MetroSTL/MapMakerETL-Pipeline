@@ -5,14 +5,14 @@ import geopandas as gpd
 
 # takes in the final streets file that is exported and separates it out into 3 diffent files in the AVL.gdb
 # Interstates, Streets, and Major_Roads are the files exported
-def filterAndSeparate(Final_MM_Shapefile, Project_Folder):  # AVL Basemap Export
+def filterAndSeparate(Project_Folder):  # AVL Basemap Export
 
     # To allow overwriting outputs change overwriteOutput option to True.
     arcpy.env.overwriteOutput = True
 
     avl_gdb = os.path.join(Project_Folder, 'AVL.gdb')
-    output_gdb = os.path.join(Project_Folder, 'Output_Folder.gdb')
-    basemap = os.path.join(output_gdb, "AllStreets")
+    output_gdb = os.path.join(Project_Folder, 'Model_Output.gdb')
+    basemap = os.path.join(output_gdb, "MapMakerCenterLine_Final")
 
     arcpy.CreateFileGDB_management(out_folder_path=Project_Folder, out_name="Model Inputs", out_version="CURRENT")
 
@@ -31,6 +31,11 @@ def filterAndSeparate(Final_MM_Shapefile, Project_Folder):  # AVL Basemap Export
 # uses geopandas to convert the file to a midmif file so 
 # that it can be uploaded to avl software
 def convertToMidMif(Project_Folder):
+    # copy the current working directory
+    # change the the directory to the project folder
+    org_dir = os.getcwd()
+    os.chdir(Project_Folder)
+
     avl_gdb = os.path.join(Project_Folder, 'AVL.gdb')
 
     # cycle through the files in the AVL GDB file and convert to MidMif Files
@@ -40,3 +45,13 @@ def convertToMidMif(Project_Folder):
         # export to MidMif file 
         # you might need to specify a full path
         gdf.to_file(f'{fc}.mif', driver='MapInfo File')
+    
+    # change back to the original directory
+    os.chdir(org_dir)
+
+# combined process for the avl script in run.py main function
+def processAVLFiles(Project_Folder):
+    # filter MapMakerCenterLine_Final to different files in AVL.gdb
+    filterAndSeparate(Project_Folder)
+    # get all of the files in AVL.gdb and export to mid mif files
+    convertToMidMif(Project_Folder)

@@ -33,36 +33,37 @@ def extract(Project_Folder, HERE_Data):  # 01-Extract and Copy
     region = arcpy.FeatureClassToFeatureClass_conversion(Adminbndy3, Model_Inputs_gdb, "Region", where_clause="POLYGON_NM = 'ST LOUIS (CITY)'")[0]
     # region = arcpy.FeatureClassToFeatureClass_conversion(Adminbndy3, Model_Inputs_gdb, "Region", where_clause="POLYGON_NM in ('ST CLAIR', 'ST LOUIS', 'ST LOUIS (CITY)')")[0]
 
-    # Clip the streets file usin region and export to Model_Inputs.gdb
+    # Clip the streets file using region and export to Model_Inputs.gdb
     Streets = os.path.join(Model_Inputs_gdb, fr"Streets")
     arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Streets.shp'), clip_features=region, out_feature_class=Streets, cluster_tolerance="")
     print('Streets Exported')
 
-    # Clip the altstreets file usin region and export to Model_Inputs.gdb
+    # Clip the altstreets file using region and export to Model_Inputs.gdb
     AltStreets = os.path.join(Model_Inputs_gdb, fr"AltStreets")
     arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'AltStreets.shp'), clip_features=region, out_feature_class=AltStreets, cluster_tolerance="")
     print('AltStreets Exported')
  
-    # Clip the zlevels file usin region and export to Model_Inputs.gdb
+    # Clip the zlevels file using region and export to Model_Inputs.gdb
     Zlevels = os.path.join(Model_Inputs_gdb, fr"Zlevels")
     arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Zlevels.shp'), clip_features=region, out_feature_class=Zlevels, cluster_tolerance="")
     print('ZLevels Exported')
 
-    # Clip the AdminBndry4 (City) file usin region and export to Model_Inputs.gdb
+    # Clip the AdminBndry4 (City) file using region and export to Model_Inputs.gdb
     Adminbndy4 = os.path.join(Model_Inputs_gdb, fr"Adminbndy4")
     arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Adminbndy4.shp'), clip_features=region, out_feature_class=Adminbndy4, cluster_tolerance="")
     print('Adminbndy4 Exported')
 
-    # Clip the Place file usin region and export to Model_Inputs.gdb
+    # Clip the Place file using region and export to Model_Inputs.gdb
     NamedPlc = os.path.join(Model_Inputs_gdb, fr"NamedPlc")
     arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'NamedPlc.shp'), clip_features=region, out_feature_class=NamedPlc, cluster_tolerance="")
     print('NamedPlc Exported')
 
-    # Clip the AdminBndry3 (County) file usin region and export to Model_Inputs.gdb
+    # Clip the AdminBndry3 (County) file using region and export to Model_Inputs.gdb
     Adminbndy3 = os.path.join(Model_Inputs_gdb, fr"Adminbndy3")
     arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Adminbndy3.shp'), clip_features=region, out_feature_class=Adminbndy3, cluster_tolerance="")
     print('Adminbndy3 Exported')
     
+    # Clip the Water file to the regional definition and expor to the Model_Inputs.gdb
     water = os.path.join(Model_Inputs_gdb, fr"Water")
     arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'WaterSeg.shp'), clip_features=region, out_feature_class=water, cluster_tolerance="")
     print('WaterSeg Exported')
@@ -74,13 +75,17 @@ def extract(Project_Folder, HERE_Data):  # 01-Extract and Copy
 # file merges the altstreets and streets file that was output from the convertStreets() and convertAltStreets()
 def mergeStreets(Project_Folder):
     Model_Outputs_gdb = os.path.join(Project_Folder, "Model_Outputs.gdb")
+    arcpy.env.workspace = Model_Outputs_gdb
 
+    # define file locations
     streets_final= os.path.join(Model_Outputs_gdb, "Streets_Final")
     altstreets_final= os.path.join(Model_Outputs_gdb, "AltStreets_Final")
     water_final = os.path.join(Model_Outputs_gdb, "Water_final")
 
-    arcpy.env.workspace = Model_Outputs_gdb
 
     # returns the file location in the Model_Outputs.gdb
+    # merge altstreets, streets, water to feature class
     allstreets = arcpy.Merge_management(inputs=[streets_final, altstreets_final, water_final], output='MapMakerCenterLine_Final')[0]
-    return arcpy.FeatureClassToFeatureClass_conversion(allstreets, out_path=Model_Outputs_gdb, out_name='MapMakerCenterLine_Final')
+
+    # export MapMakerCenterLine_Final shapefile to the project directory folder
+    return arcpy.FeatureClassToFeatureClass_conversion(allstreets, out_path=Project_Folder, out_name='MapMakerCenterLine_Final.shp')
