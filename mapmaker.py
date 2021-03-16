@@ -15,7 +15,6 @@ def convertStreets(Project_Folder, us_counties):
     streets = os.path.join(Model_Inputs_gdb, 'Streets')
     zlevels = os.path.join(Model_Inputs_gdb, 'Zlevels')
     adminbound4 = os.path.join(Model_Inputs_gdb, 'Adminbndy4')
-    adminbound3 = os.path.join(Model_Inputs_gdb, 'Adminbndy3')
 
     arcpy.env.workspace = Model_Inputs_gdb
     
@@ -73,8 +72,7 @@ def convertStreets(Project_Folder, us_counties):
     print('NREF_ZLEV Calculated')
 
 
-    # Calculate Cities
-   
+    # Calculate Cities/AdminBndry4 fields
     # calculate R_AREA Cities
     arcpy.JoinField_management(in_data=streets_simple, in_field="R_AREA_ID", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceCodeR", expression="!AREA_ID!", expression_type="PYTHON3")
@@ -92,13 +90,13 @@ def convertStreets(Project_Folder, us_counties):
     if name == 'ST LOUIS':
         return 'ST LOUIS CITY'
     else:
-        return name""")
+        return name.upper()""")
     arcpy.DeleteField_management(in_table=streets_simple, drop_field=["AREA_ID", "POLYGON_NM"])
     print('Cities Calculated')
     
 
-    # Calculate County
-
+    # Calculate County fields
+    # CountyNameR, CountyNameL, CountyCodeL, CountyCodeR
     county_streets = arcpy.SpatialJoin_analysis(streets_simple, us_counties, "county_streets")[0]
     arcpy.JoinField_management(in_data=streets_simple, in_field="LINK_ID", join_table=county_streets, join_field="LINK_ID", fields=["GEOID", "NAME"])
     arcpy.CalculateField_management(in_table=streets_simple, field="CountyNameR", expression="placeNameCalc(!GEOID!, !NAME!)", expression_type="PYTHON3", code_block="""def placeNameCalc(geoid, name):
@@ -109,7 +107,7 @@ def convertStreets(Project_Folder, us_counties):
     elif geoid == '17163':
         return 'ST CLAIR'
     else:
-        return upper(name)""")
+        return name.upper()""")
 
     arcpy.CalculateField_management(in_table=streets_simple, field="CountyNameL", expression="placeNameCalc(!GEOID!, !NAME!)", expression_type="PYTHON3", code_block="""def placeNameCalc(geoid, name):
     if geoid == '29189':
@@ -126,8 +124,8 @@ def convertStreets(Project_Folder, us_counties):
 
     print("County Calculated")
     
-    # Calculate State
-   
+    # Calculate State fields
+    # StateAbbrL, StateAbbrR, StateCodeL, StateCodeR
     arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeL", expression_type="PYTHON3", expression="!GEOID![0:2]")
     arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrL", expression_type="PYTHON3", expression="stateAbbr(!StateCodeL!)", code_block=""""def stateAbrr(statecode):
     if statecode == 29:
@@ -147,6 +145,9 @@ def convertStreets(Project_Folder, us_counties):
 
 
     # One Way Calculation
+    # T = > 
+    # F = <
+    # if blank is not a one way road and returns blank
     arcpy.CalculateField_management(in_table=streets_simple, field="OneWay", expression="oneWCalc(!DIR_TRAVEL!)", expression_type="PYTHON3", code_block="""def oneWCalc(dir):
     if(dir == "T"):
         return ">"
@@ -156,6 +157,7 @@ def convertStreets(Project_Folder, us_counties):
         return '' """)
     
     # calculated speed with to and from speeds
+    # uses either to or from speed depending on direction for oneway speed calcs
     arcpy.CalculateField_management(in_table=streets_simple, field="Speed", expression="speedCalc(!DIR_TRAVEL!,!TO_SPD_LIM!,!FR_SPD_LIM!)", expression_type="PYTHON3", code_block="""def speedCalc(dir, toSpeed, fromSpeed):
     if(dir == 'T'):
         return toSpeed
@@ -165,6 +167,7 @@ def convertStreets(Project_Folder, us_counties):
     
     
     # Calculate Speeds based on category
+    # Calculates speed fields that are empty with the speed calc field specs from HERE documentation
     arcpy.CalculateField_management(in_table=streets_simple, field="Speed", expression="nullSpeedCalc(!Speed!, !SPEED_CAT!)", expression_type="PYTHON3", code_block="""def nullSpeedCalc(speed, cat):
     if(speed is None):
         if(cat == '8'):
@@ -178,6 +181,7 @@ def convertStreets(Project_Folder, us_counties):
     print('Speed Calculated')
     
     # Calculate Functional Classes
+    # functional classes that adhear to the map maker specification
     arcpy.CalculateField_management(in_table=streets_simple, field="CFCC", expression="cfccCalc(!FUNC_CLASS!)", expression_type="PYTHON3", code_block="""def cfccCalc(fClass):
     if(fClass == 1):
         return 'A10'
@@ -194,7 +198,10 @@ def convertStreets(Project_Folder, us_counties):
     return arcpy.FeatureClassToFeatureClass_conversion(in_features="Streets_Final", out_path=Model_Outputs_gdb, out_name="Streets_Final")[0]
 
 
-
+# This fucntion is the way to change the HERE data spec to the mapmaker spec for the altstreets file (alias' file) for alternate street names
+# this function takes in the project folder environemental variable as a single argument to find files that it needs
+# this process runs after the extract() and that is where the files are extracted to their gdb's
+# all data from this function is output to the Model_Output.gdb
 def convertAltStreets(Project_Folder):
     Model_Inputs_gdb = os.path.join(Project_Folder, 'Model_Inputs.gdb')
     Model_Outputs_gdb = os.path.join(Project_Folder, 'Model_Outputs.gdb')
@@ -205,10 +212,13 @@ def convertAltStreets(Project_Folder):
     arcpy.env.workspace = Model_Inputs_gdb
     
     # Simplify AltStreets and Streets Lines
+    # removes some of the nodes that make up the lines to make the files low resolution enough to be uploaded through mapmaker
     altstreets_simple = arcpy.SimplifyLine_cartography(in_features=altstreets, out_feature_class=os.path.join(Model_Outputs_gdb, "AltStreet_simple"), algorithm="POINT_REMOVE", tolerance="5 Feet", error_resolving_option="RESOLVE_ERRORS", collapsed_point_option="KEEP_COLLAPSED_POINTS", error_checking_option="CHECK", in_barriers=[])[0]
     
+    # add ref_zlev and dom fields for alias classification and linking to streets file
     arcpy.AddFields_management(in_table=altstreets_simple, field_description=[["REF_ZLEV", "SHORT", "", "", "", ""], 
                                                                             ["DOM", "LONG", "", "", "", ""]])
+
 
     arcpy.AddIndex_management(altstreets_simple, ["LINK_ID"], "#", "NON_UNIQUE", "ASCENDING")
 
@@ -231,7 +241,7 @@ def convertAltStreets(Project_Folder):
 
     return arcpy.FeatureClassToFeatureClass_conversion(in_features="AltStreets_Final", out_path=Model_Outputs_gdb, out_name="AltStreets_Final")[0]
 
-
+# file merges the altstreets and streets file that was output from the convertStreets() and convertAltStreets()
 def mergeStreets(Project_Folder):
     Model_Outputs_gdb = os.path.join(Project_Folder, "Model_Outputs.gdb")
 
@@ -239,5 +249,6 @@ def mergeStreets(Project_Folder):
     altstreets_final= os.path.join(Model_Outputs_gdb, "AltStreets_Final")
     
     arcpy.env.workspace = Model_Outputs_gdb
-    
+
+    # returns the file location in the Model_Outputs.gdb
     return arcpy.Merge_management(inputs=[streets_final, altstreets_final], output='AllStreets_Final')[0]
