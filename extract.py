@@ -13,70 +13,45 @@ import os
 
 
 
-def extract(Project_Folder, HERE_Data, us_counties):  # 01-Extract and Copy
-    Select_State="\"STATEFP\" IN ('17', '29')"
-    Select_Counties="\"NAMELSAD\" IN ('St. Louis city', 'St. Louis County', 'St. Clair County' )"
+def extract(Project_Folder, HERE_Data):  # 01-Extract and Copy
 
     # To allow overwriting outputs change overwriteOutput option to True.
     arcpy.env.overwriteOutput = True
     arcpy.env.workspace = HERE_Data
     
+    Model_Inputs_gdb = arcpy.CreateFileGDB_management(out_folder_path=Project_Folder, out_name="Model_Inputs", out_version="CURRENT")[0]
 
-    # Process: Create File Geodatabase (Create File Geodatabase) 
-    Model_Inputs_gdb = arcpy.CreateFileGDB_management(out_folder_path=Project_Folder, out_name="Model Inputs", out_version="CURRENT")[0]
+    Model_Outputs_gdb = arcpy.CreateFileGDB_management(out_folder_path=Project_Folder, out_name="Model_Outputs", out_version="CURRENT")[0]
 
-    # Process: Create File Geodatabase (2) (Create File Geodatabase) 
-    Model_Outputs_gdb = arcpy.CreateFileGDB_management(out_folder_path=Project_Folder, out_name="Model Outputs", out_version="CURRENT")[0]
+    us_counties = os.path.join(HERE_Data, 'Adminbndy3.shp')
 
-    # Process: Select_Data (Select Data) 
-    # Select Data Utility is not implemented 
+    fields = arcpy.ListFields(us_counties)
 
-    # Process: Select (Select) 
-    tl_2017_us_county_state_selected = fr"{Project_Folder}\Model Inputs.gdb\tl_2017_us_county_state_selected"
-    arcpy.Select_analysis(in_features=os.path.join(Project_Folder, us_counties), out_feature_class=tl_2017_us_county_state_selected, where_clause=f"{Select_State}")
+    region = arcpy.FeatureClassToFeatureClass_conversion(us_counties, Model_Inputs_gdb, "Region", where_clause="POLYGON_NM in ('ST CLAIR', 'ST LOUIS', 'ST LOUIS (CITY)')")[0]
 
-    # Process: Select (2) (Select) 
-    tl_2017_us_county_counties_selected = fr"{Project_Folder}\Model Inputs.gdb\tl_2017_us_county_counties_selected"
-    arcpy.Select_analysis(in_features=tl_2017_us_county_state_selected, out_feature_class=tl_2017_us_county_counties_selected, where_clause=f"{Select_Counties}")
+    Streets = os.path.join(Model_Inputs_gdb, fr"Streets")
+    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Streets.shp'), clip_features=region, out_feature_class=Streets, cluster_tolerance="")
+    print('Streets Exported')
 
-    # Process: Clip (Clip) 
-    Streets = fr"{Project_Folder}\Model Inputs.gdb\Streets"
-    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Streets.shp'), clip_features=tl_2017_us_county_counties_selected, out_feature_class=Streets, cluster_tolerance="")
+    AltStreets = os.path.join(Model_Inputs_gdb, fr"AltStreets")
+    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'AltStreets.shp'), clip_features=region, out_feature_class=AltStreets, cluster_tolerance="")
+    print('AltStreets Exported')
+ 
+    Zlevels = os.path.join(Model_Inputs_gdb, fr"Zlevels")
+    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Zlevels.shp'), clip_features=region, out_feature_class=Zlevels, cluster_tolerance="")
+    print('ZLevels Exported')
 
-    # Process: Select_Data_2_ (Select Data) 
-    # Select Data Utility is not implemented 
+    Adminbndy4 = os.path.join(Model_Inputs_gdb, fr"Adminbndy4")
+    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Adminbndy4.shp'), clip_features=region, out_feature_class=Adminbndy4, cluster_tolerance="")
+    print('Adminbndy4 Exported')
 
-    # Process: Clip (2) (Clip) 
-    AltStreets = fr"{Project_Folder}\Model Inputs.gdb\AltStreets"
-    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'AltStreets.shp'), clip_features=tl_2017_us_county_counties_selected, out_feature_class=AltStreets, cluster_tolerance="")
+    NamedPlc = os.path.join(Model_Inputs_gdb, fr"NamedPlc")
+    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'NamedPlc.shp'), clip_features=region, out_feature_class=NamedPlc, cluster_tolerance="")
+    print('NamedPlc Exported')
 
-    # Process: Select_Data_3_ (Select Data) 
-    # Select Data Utility is not implemented 
-
-    # Process: Clip (3) (Clip) 
-    Zlevels = fr"{Project_Folder}\Model Inputs.gdb\Zlevels"
-    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Zlevels.shp'), clip_features=tl_2017_us_county_counties_selected, out_feature_class=Zlevels, cluster_tolerance="")
-
-    # Process: Select_Data_4_ (Select Data) 
-    # Select Data Utility is not implemented 
-
-    # Process: Clip (4) (Clip) 
-    Adminbndy4 = fr"{Project_Folder}\Model Inputs.gdb\Adminbndy4"
-    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Adminbndy4.shp'), clip_features=tl_2017_us_county_counties_selected, out_feature_class=Adminbndy4, cluster_tolerance="")
-
-    # Process: Select_Data_5_ (Select Data) 
-    # Select Data Utility is not implemented 
-
-    # Process: Clip (5) (Clip) 
-    NamedPlc = fr"{Project_Folder}\Model Inputs.gdb\NamedPlc"
-    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'NamedPlc.shp'), clip_features=tl_2017_us_county_counties_selected, out_feature_class=NamedPlc, cluster_tolerance="")
-
-    # Process: Select_Data_6_ (Select Data) 
-    # Select Data Utility is not implemented 
-
-    # Process: Clip (6) (Clip) 
-    Adminbndy3 = fr"{Project_Folder}\Model Inputs.gdb\Adminbndy3"
-    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Adminbndy3.shp'), clip_features=tl_2017_us_county_counties_selected, out_feature_class=Adminbndy3, cluster_tolerance="")
+    Adminbndy3 = os.path.join(Model_Inputs_gdb, fr"Adminbndy3")
+    arcpy.Clip_analysis(in_features=os.path.join(HERE_Data, 'Adminbndy3.shp'), clip_features=region, out_feature_class=Adminbndy3, cluster_tolerance="")
+    print('Adminbndy3 Exported')
 
     return os.path.join(Project_Folder, Model_Inputs_gdb)
 

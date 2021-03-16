@@ -35,4 +35,5 @@ def convertToMidMif(Project_Folder):
         # convert to geodataframe
         gdf = gpd.GeoDataFrame(fc)
         # export to MidMif file 
+        # you might need to specify a full path
         gdf.to_file(f'{fc}.mif', driver='MapInfo File')

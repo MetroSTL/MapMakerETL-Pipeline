@@ -32,6 +32,17 @@ You will also need Fiona and GeoPandas for the AVL export
 
 `conda install fiona geopandas`
 
+
+### Alternate install (untested)
+
+It may be possible to install all of the libraries in one command and may be easier to get off the 
+
+create environment
+
+`conda list --export > requirements.txt`
+
+No idea how to install it
+
 To Run:
 
  `python run()` 
@@ -56,3 +67,9 @@ While the Basemap for Pass and FX is done in MapMaker there is another completel
 ### Projections / Coordinate Systems
 
 Because Trapeze is not a GIS system the data must always be uploaded in WGS1984. If forwhatever reason this is not the case you may need to [delete projection files](https://gis.stackexchange.com/questions/180551/how-to-remove-projection-in-terminal-from-shp-file-with-valid-prj-available). If the coordinate system is incorrect you can always use ArcMap or ArcPro's [Project (Data Management) Tool](https://pro.arcgis.com/en/pro-app/latest/tool-reference/data-management/project.htm).
+
+
+## Missing Sections
+- Water
+- custom streets
+- 

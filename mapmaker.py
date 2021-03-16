@@ -2,7 +2,13 @@ import arcpy
 from sys import argv
 import os
 
-def convertStreets(Project_Folder):
+# takes the project folder and us_counties env var and create an updated schema for the streets file to match what is needed for the mapmaker program
+# adds in turning restrictions with zlevel information to nref_lev and ref_lev fields
+# calculates names and id's of cities counties and states
+# recalculates oneway to specific mapmaker format
+# recalculates cfcc (functional road classes) to mapmaker format
+# makes assumtions on speed of road if there is no data in speed field
+def convertStreets(Project_Folder, us_counties):
     Model_Inputs_gdb = os.path.join(Project_Folder, 'Model_Inputs.gdb')
     Model_Outputs_gdb = os.path.join(Project_Folder, 'Model_Outputs.gdb')
 
@@ -35,22 +41,21 @@ def convertStreets(Project_Folder):
                                                                             ["CFCC", "TEXT", "", "255", "", ""], 
                                                                             ["M_LINK_ID", "LONG", "", "", "", ""], 
                                                                             ["OLD_LINK_ID", "LONG", "", "", "", ""]])
-            
+    print('Fields added to Streets')
     
-    
-    # add some fields
-    
-    # add in zlevel data to streets
-    # calculate REF
     arcpy.JoinField_management(in_data=streets_simple, in_field="REF_IN_ID", join_table=zlevels, join_field="NODE_ID", fields=["Z_LEVEL"])
     zlevelCalc ="""zlevCalc(!Z_LEVEL!)", expression_type="PYTHON3", code_block="def zlevCalc(z):
     if(z != 0):
         return z 
     else:
         return 0"""
-    arcpy.CalculateField_management(in_table=streets_simple, field="REF_ZLEV", expression = "zlevCalc(!Z_LEVEL!)", expression_type="PYTHON3", code_block=zlevelCalc, field_type="TEXT")
-    arcpy.DeleteField_management(in_table=streets_simple, fields=["ZLEVEL"])
-    
+    arcpy.CalculateField_management(in_table=streets_simple, field="REF_ZLEV", expression = "zlevCalc(!Z_LEVEL!)", expression_type="PYTHON3", code_block="""def zlevCalc(z):
+    if(z != 0):
+        return z 
+    else:
+        return 0""", field_type="TEXT")
+    arcpy.DeleteField_management(in_table=streets_simple, drop_field=["ZLEVEL"])
+    print('REF_ZLEV Calculated')
     
     # calculate NREF
     arcpy.JoinField_management(in_data=streets_simple, in_field="NREF_IN_ID", join_table=zlevels, join_field="NODE_ID", fields=["Z_LEVEL"])
@@ -59,80 +64,86 @@ def convertStreets(Project_Folder):
         return z
     else:
         return 0"""
-    arcpy.CalculateField_management(in_table=streets_simple, field="NREF_ZLEV", expression="zlevCalc(!Z_LEVEL!)", expression_type="PYTHON3", code_block=zNlevelCalc, field_type="TEXT")
-    arcpy.DeleteField_management(in_table=streets_simple, fields=["ZLEVEL"])
-
+    arcpy.CalculateField_management(in_table=streets_simple, field="NREF_ZLEV", expression="zlevCalc(!Z_LEVEL!)", expression_type="PYTHON3", code_block="""def zlevCalc(z):
+    if(z != 0):
+        return z
+    else:
+        return 0""", field_type="TEXT")
+    arcpy.DeleteField_management(in_table=streets_simple, drop_field=["ZLEVEL"])
+    print('NREF_ZLEV Calculated')
 
 
     # Calculate Cities
    
     # calculate R_AREA Cities
-    arcpy.JoinField_management(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="R_AREA_ID", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceCodeR", expression="!AREA_ID!", expression_type="PYTHON3")
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceNameR", expression="placeNameCalc(!POLYGON_NM!)", expression_type="PYTHON3", code_block="""def placeNameCalc(name):
     if name == 'ST LOUIS':
         return 'ST LOUIS CITY'
     else:
         return name""")
-    arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.DeleteField_management(in_table=streets_simple, drop_field=["AREA_ID", "POLYGON_NM"])
     
     # calculate L_AREA Cities
-    arcpy.JoinField_management(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.JoinField_management(in_data=streets_simple, in_field="L_AREA_ID", join_table=adminbound4, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceCodeL", expression_type="PYTHON3", expression="!AREA_ID!")
     arcpy.CalculateField_management(in_table=streets_simple, field="PlaceNameL", expression_type="PYTHON3", expression="placeNameCalc(!POLYGON_NM!)",  code_block="""def placeNameCalc(name):
     if name == 'ST LOUIS':
         return 'ST LOUIS CITY'
     else:
         return name""")
-    arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
+    arcpy.DeleteField_management(in_table=streets_simple, drop_field=["AREA_ID", "POLYGON_NM"])
+    print('Cities Calculated')
     
 
     # Calculate County
-   
-    # calculate R_AREA County
-    arcpy.JoinField_management(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
-    arcpy.CalculateField_management(in_table=streets_simple, field="CountyCodeR", expression="!AREA_ID!", expression_type="PYTHON3")
-    arcpy.CalculateField_management(in_table=streets_simple, field="CountyNameR", expression="placeNameCalc(!POLYGON_NM!)", expression_type="PYTHON3", code_block="""def placeNameCalc(name):
-    if name == 'ST LOUIS (CITY)':
+
+    county_streets = arcpy.SpatialJoin_analysis(streets_simple, us_counties, "county_streets")[0]
+    arcpy.JoinField_management(in_data=streets_simple, in_field="LINK_ID", join_table=county_streets, join_field="LINK_ID", fields=["GEOID", "NAME"])
+    arcpy.CalculateField_management(in_table=streets_simple, field="CountyNameR", expression="placeNameCalc(!GEOID!, !NAME!)", expression_type="PYTHON3", code_block="""def placeNameCalc(geoid, name):
+    if geoid == '29189':
+        return 'ST LOUIS'
+    elif geoid == '29510':
         return 'ST LOUIS CITY'
+    elif geoid == '17163':
+        return 'ST CLAIR'
     else:
-        return name""")
-    arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
-    
-    # calculate L_AREA County
-    arcpy.JoinField_management(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
-    arcpy.CalculateField_management(in_table=streets_simple, field="CountyCodeL", expression_type="PYTHON3", expression="!AREA_ID!")
-    arcpy.CalculateField_management(in_table=streets_simple, field="CountyNameL", expression_type="PYTHON3", expression="placeNameCalc(!POLYGON_NM!)", code_block="""def placeNameCalc(name):
-    if name == 'ST LOUIS (CITY)':
+        return upper(name)""")
+
+    arcpy.CalculateField_management(in_table=streets_simple, field="CountyNameL", expression="placeNameCalc(!GEOID!, !NAME!)", expression_type="PYTHON3", code_block="""def placeNameCalc(geoid, name):
+    if geoid == '29189':
+        return 'ST LOUIS'
+    elif geoid == '29510':
         return 'ST LOUIS CITY'
+    elif geoid == '17163':
+        return 'ST CLAIR'
     else:
-        return name""")
-    arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
-    
+        return name.upper()""")
+
+    arcpy.CalculateField_management(in_table=streets_simple, field="CountyCodeR", expression="!GEOID!", expression_type="PYTHON3")
+    arcpy.CalculateField_management(in_table=streets_simple, field="CountyCodeL", expression="!GEOID!", expression_type="PYTHON3")
+
+    print("County Calculated")
     
     # Calculate State
    
-    # calculate R_AREA State
-    arcpy.JoinField_management(in_data=streets_simple, in_field="R_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
-    arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeR", expression="!AREA_ID!", expression_type="PYTHON3")
-    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrR", expression="placeAbbrCalc(!AREA_ID!)", expression_type="PYTHON3", code_block="""def placeAbbrCalc(id):
-    if id > 21000000:
-        return 21
+    arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeL", expression_type="PYTHON3", expression="!GEOID![0:2]")
+    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrL", expression_type="PYTHON3", expression="stateAbbr(!StateCodeL!)", code_block=""""def stateAbrr(statecode):
+    if statecode == 29:
+        return 'MO'
     else:
-        return 17""")
-    arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
-    
-    # calculate L_AREA State
-    arcpy.JoinField_management(in_data=streets_simple, in_field="L_ID_AREA", join_table=adminbound3, join_field="AREA_ID", fields=["AREA_ID", "POLYGON_NM"])
-    arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeL", expression_type="PYTHON3", expression="!AREA_ID!")
-    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrL", expression_type="PYTHON3", expression="placeAbbrCalc(!AREA_ID!)", code_block="""def placeAbbrCalc(id):
-    if id > 21000000:
-        return 21
+        retturn 'IL'
+    """)
+    arcpy.CalculateField_management(in_table=streets_simple, field="StateCodeR", expression_type="PYTHON3", expression="!GEOID![0:2]")
+    arcpy.CalculateField_management(in_table=streets_simple, field="StateAbbrR", expression_type="PYTHON3", expression="stateAbbr(!StateCodeR!)", code_block=""""def stateAbrr(statecode):
+    if statecode == 29:
+        return 'MO'
     else:
-        return 17""")
-    arcpy.DeleteField_management(in_table=streets_simple, fields=["AREA_ID", "POLYGON_NM"])
-    
+        retturn 'IL'
+    """)
 
+    arcpy.DeleteField_management(in_table=streets_simple, drop_field=["GEOID", "NAME"])
 
 
     # One Way Calculation
@@ -150,6 +161,7 @@ def convertStreets(Project_Folder):
         return toSpeed
     else:
         return fromSpeed""")
+    print('OneWay Calculated')
     
     
     # Calculate Speeds based on category
@@ -163,6 +175,7 @@ def convertStreets(Project_Folder):
             return 25
         elif(cat == '5'):
             return 35""")
+    print('Speed Calculated')
     
     # Calculate Functional Classes
     arcpy.CalculateField_management(in_table=streets_simple, field="CFCC", expression="cfccCalc(!FUNC_CLASS!)", expression_type="PYTHON3", code_block="""def cfccCalc(fClass):
@@ -176,6 +189,7 @@ def convertStreets(Project_Folder):
         return 'A40'""")
     
     arcpy.CalculateFields_management(in_table=streets_simple, expression_type="PYTHON3", fields=[["M_LINK_ID", "!OBJECTID!"], ["OLD_LINK_ID", "!LINK_ID!"]], code_block="")[0]
+    print('CFCC Calculated')
 
     return arcpy.FeatureClassToFeatureClass_conversion(in_features="Streets_Final", out_path=Model_Outputs_gdb, out_name="Streets_Final")[0]
 
