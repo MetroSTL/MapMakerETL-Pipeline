@@ -1,8 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-from admin import extract, mergeStreets
-from streets import convertStreets, convertAltStreets, 
+from lib.admin import extract, mergeLines
+from lib.water import convertWater
+from lib.streets import convertStreets, convertAltStreets, findAndIsolateOldEdits
+from lib.avl import processAVLFiles
 
 
 def run():
@@ -17,6 +19,7 @@ def run():
     # HERE Dir = Where the original HERE files are.
     # all of the files are shp files that just live in this directory
     HERE_Data = os.environ['HERE_DATA']
+    PREV_MAP = os.environ['PREV_MAP']
     US_COUNTIES = os.path.join(os.getcwd(), r'county\cb_2017_us_county_500k.shp')
 
     # where the us couties shapefile lives
@@ -30,15 +33,17 @@ def run():
     # convert altstreet process => model_outputs.gdb\\AltStreets_Final
     convertAltStreets(Project_Folder)
     
+    # water conversions process => model_outputs.gdb\\Water_Final
+    convertWater(Project_Folder)
+
     # find all of the edits in the former file =>  model_output.gdb\\Previous_Edits
+    findAndIsolateOldEdits(Project_Folder, PREV_MAP)
 
 
     ## merge the streets, altstreets and water files => model_output.gdb\\MapMakerCenterline_final
-    # mergeStreets(Project_Folder)
-    # 
+    mergeLines(Project_Folder)
 
-
-
+    processAVLFiles(Project_Folder)
     
 
 # run the damn thing

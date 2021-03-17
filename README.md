@@ -10,7 +10,7 @@ The Tool is broken out into a couple of different toolsets:
 4. AVL Basemap
 
 
-![MapMaker diagram](MapMaker_Model_Diagram.png)
+![MapMaker diagram](.\docs\MapMaker_Model_Diagram.png)
 
 
 
